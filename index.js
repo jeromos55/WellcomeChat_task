@@ -5,40 +5,29 @@ var express = require('express');
 var app = express();
 
 
-
-
-// app.get('/', function(req, res) {
-// 	res.send("Number of processors: "+numCPUs);
-// 	//res.json(numCPUs);
-// });
-
-// var cluster_isMaster = cluster.isMaster;
-// console.log('Master: ' + cluster_isMaster);
-
-
-
 if (cluster.isMaster) {  
     for (var i = 0; i < numCPUs; i++) {
         // Create a worker
-        console.log(`Forking process number ${i}...`);
+        console.log('Forking process number '+i+'...');
         cluster.fork();
     }
 } else {
+
     // Workers share the TCP connection in this server
     var app = express();
 
-    console.log(`Worker ${process.pid} started and finished`);
-
-    
+    console.log('Worker '+process.pid+' started and finished');
 
     // All workers use this port
-    app.listen(8080);
+    app.listen(3000);
 }
-
+    // restarting worker if died 
 cluster.on('exit', function(worker, code, signal) {  
     console.log('Worker %d died with code/signal %s. Restarting worker...', worker.process.pid, signal || code);
     cluster.fork();
 });
+
+
 
 app.get('/', function (req, res) {
 
@@ -47,17 +36,17 @@ app.get('/', function (req, res) {
          req.connection.remoteAddress || 
          req.socket.remoteAddress || 
          req.connection.socket.remoteAddress;
+    var worker_pid = process.pid;
+    var worker_id = cluster.worker.id;
 
+    var user_info = {
+        User_Agent: user_ua,
+        User_IP: user_ip ,
+        Worker_process_id: worker_pid,
+        Worker_id: worker_id,
+    }; 
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(user_info, null, 3));
 
-    var user_uuid = 0; // this is fake number yet :)
-
-    var user_info = [
-        { 'User-Agent': user_ua },
-        { "User-IP": user_ip },
-        { uuid: user_uuid },
-    ]; 
-
-        
-        
-        res.json(user_info);
     });
